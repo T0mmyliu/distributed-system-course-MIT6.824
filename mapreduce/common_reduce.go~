@@ -68,6 +68,7 @@ func doReduce(
 	}
 
 	var keys []string
+
 	for k := range keyValues {
 		keys = append(keys, k)
 	}
