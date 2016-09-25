@@ -37,22 +37,26 @@ func (mr *Master) schedule(phase jobPhase) {
 	}
 
 	fmt.Printf("Schedule: taskArgsList prepared.\n")
+	var wg sync.WaitGroup //
 
-	var wg sync.WaitGroup
 	for taskIndex := 0; taskIndex < ntasks; taskIndex++ {
 		wg.Add(1)
 		var idleWorker string
-		idleWorker = <-mr.registerChannel
 
 		go func(index int) {
 			defer wg.Done()
-			ok := call(idleWorker, "Worker.DoTask", &taskArgsList[index], new(struct{}))
-			if ok == false {
-				fmt.Printf("Master: RPC %s DoTask error\n", idleWorker)
-			} else {
-				go func() {
-					mr.registerChannel <- idleWorker
-				}()
+			for {
+				idleWorker = <-mr.registerChannel
+				ok := call(idleWorker, "Worker.DoTask", &taskArgsList[index], new(struct{}))
+				if ok == false {
+					fmt.Printf("Master: RPC %s DoTask error\n", idleWorker)
+					continue
+				} else {
+					go func() {
+						mr.registerChannel <- idleWorker
+					}()
+					break
+				}
 			}
 		}(taskIndex)
 	}
